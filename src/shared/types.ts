@@ -68,8 +68,8 @@ export interface ClipboardApi {
   clearHistory: () => Promise<void>
   getSettings: () => Promise<AppSettings>
   updateSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
-  getPlatformWarnings: () => Promise<PlatformWarning[]>
   getStartupWizardInfo: () => Promise<StartupWizardInfo>
+  setDrawerExpanded: (expanded: boolean) => Promise<void>
   hideDrawer: () => Promise<void>
   onEntriesChanged: (callback: () => void) => () => void
 }

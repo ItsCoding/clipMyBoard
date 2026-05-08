@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 export class DrawerWindowService {
   private window: BrowserWindow | null = null
+  private expanded = false
 
   getWindow(): BrowserWindow | null {
     return this.window
@@ -13,10 +14,10 @@ export class DrawerWindowService {
 
     this.window = new BrowserWindow({
       width: 1180,
-      height: 250,
+      height: 340,
       show: false,
       frame: false,
-      resizable: false,
+      resizable: true,
       maximizable: false,
       minimizable: false,
       skipTaskbar: true,
@@ -53,17 +54,18 @@ export class DrawerWindowService {
 
   show(): void {
     const drawer = this.create()
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
-    const width = Math.min(1180, display.workArea.width - 32)
-    const height = 250
-    const x = display.workArea.x + Math.round((display.workArea.width - width) / 2)
-    const y = display.workArea.y + 18
+    this.position(drawer)
 
-    drawer.setBounds({ x, y, width, height })
     drawer.setAlwaysOnTop(true, 'floating')
     drawer.show()
     drawer.focus()
     drawer.webContents.send('drawer:shown')
+  }
+
+  setExpanded(expanded: boolean): void {
+    this.expanded = expanded
+    const drawer = this.create()
+    this.position(drawer)
   }
 
   hide(): void {
@@ -72,5 +74,19 @@ export class DrawerWindowService {
 
   broadcastEntriesChanged(): void {
     if (this.window && !this.window.isDestroyed()) this.window.webContents.send('entries:changed')
+  }
+
+  private position(drawer: BrowserWindow): void {
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+    const width = this.expanded
+      ? Math.max(900, Math.round(display.workArea.width * 0.6))
+      : Math.min(1180, display.workArea.width - 32)
+    const height = this.expanded
+      ? Math.max(420, Math.round(display.workArea.height * 0.4))
+      : 340
+    const x = display.workArea.x + Math.round((display.workArea.width - width) / 2)
+    const y = display.workArea.y + 18
+
+    drawer.setBounds({ x, y, width, height })
   }
 }

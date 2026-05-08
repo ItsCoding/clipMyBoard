@@ -5,6 +5,7 @@ interface EntryCardProps {
   active: boolean
   index: number
   onPaste: (id: string) => void
+  onPreview: (entry: ClipboardEntry) => void
   onTogglePin: (id: string) => void
   onDelete: (id: string) => void
 }
@@ -17,12 +18,15 @@ const labels: Record<ClipboardEntry['kind'], string> = {
   files: 'Files'
 }
 
-export function EntryCard({ entry, active, index, onPaste, onTogglePin, onDelete }: EntryCardProps) {
+export function EntryCard({ entry, active, index, onPaste, onPreview, onTogglePin, onDelete }: EntryCardProps) {
   return (
     <article className={`entry-card ${active ? 'active' : ''}`} onClick={() => onPaste(entry.id)}>
       <header>
         <span className={`kind ${entry.kind}`}>{labels[entry.kind]}</span>
-        <button title="Pin" onClick={(event) => { event.stopPropagation(); onTogglePin(entry.id) }}>{entry.isPinned ? '●' : '○'}</button>
+        <div className="card-actions">
+          <button title="Preview" onClick={(event) => { event.stopPropagation(); onPreview(entry) }}>⛶</button>
+          <button title="Pin" onClick={(event) => { event.stopPropagation(); onTogglePin(entry.id) }}>{entry.isPinned ? '●' : '○'}</button>
+        </div>
       </header>
 
       <Preview entry={entry} />

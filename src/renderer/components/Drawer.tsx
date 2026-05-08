@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { AppSettings, ClipboardEntry, PlatformWarning, StartupWizardInfo } from '../../shared/types'
+import type { AppSettings, ClipboardEntry, StartupWizardInfo } from '../../shared/types'
 import { EntryCard } from './EntryCard'
 import { SearchBar } from './SearchBar'
 import { StartupWizard } from './StartupWizard'
@@ -12,18 +12,15 @@ export function Drawer() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('History')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [warnings, setWarnings] = useState<PlatformWarning[]>([])
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [wizardInfo, setWizardInfo] = useState<StartupWizardInfo | null>(null)
   const [showWizard, setShowWizard] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [previewEntry, setPreviewEntry] = useState<ClipboardEntry | null>(null)
 
   const loadEntries = useCallback(async () => {
-    const [nextEntries, platformWarnings] = await Promise.all([
-      window.clipmyboard.listEntries(query),
-      window.clipmyboard.getPlatformWarnings()
-    ])
+    const nextEntries = await window.clipmyboard.listEntries(query)
     setEntries(nextEntries)
-    setWarnings(platformWarnings)
     setActiveIndex(0)
   }, [query])
 
@@ -42,7 +39,12 @@ export function Drawer() {
 
       setSettings(nextSettings)
       setWizardInfo(nextWizardInfo)
-      setShowWizard(!nextSettings.setupWizardCompleted)
+
+      if (!nextSettings.setupWizardCompleted) {
+        setShowWizard(true)
+        const completedSettings = await window.clipmyboard.updateSettings({ setupWizardCompleted: true })
+        setSettings(completedSettings)
+      }
     }
 
     void loadStartupState()
@@ -67,6 +69,12 @@ export function Drawer() {
   const paste = useCallback(async (id: string) => {
     await window.clipmyboard.pasteEntry(id)
   }, [])
+
+  const toggleExpanded = useCallback(async () => {
+    const next = !isExpanded
+    setIsExpanded(next)
+    await window.clipmyboard.setDrawerExpanded(next)
+  }, [isExpanded])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -96,7 +104,7 @@ export function Drawer() {
   }, [activeIndex, filteredEntries, paste])
 
   return (
-    <main className="drawer-shell">
+    <main className={`drawer-shell ${isExpanded ? 'expanded' : 'compact'}`}>
       <aside className="sidebar">
         <div className="brand"><span className="brand-dot" /> ClipMyBoard</div>
         <nav>
@@ -113,9 +121,8 @@ export function Drawer() {
         <div className="topbar">
           <SearchBar value={query} onChange={setQuery} />
           <div className="hint">Click/Enter paste · Esc close · Shift+Ctrl+V open</div>
+          <button className="toolbar-button" onClick={toggleExpanded}>{isExpanded ? 'Compact' : 'Extend'}</button>
         </div>
-
-        {warnings.length > 0 && <div className="warning">{warnings[0].title}: {warnings[0].message}</div>}
 
         <div className="entries">
           {filteredEntries.map((entry, index) => (
@@ -125,6 +132,7 @@ export function Drawer() {
               active={index === activeIndex}
               index={index}
               onPaste={paste}
+              onPreview={setPreviewEntry}
               onTogglePin={async (id) => { await window.clipmyboard.togglePin(id); await loadEntries() }}
               onDelete={async (id) => { await window.clipmyboard.deleteEntry(id); await loadEntries() }}
             />
@@ -136,6 +144,51 @@ export function Drawer() {
       {showWizard && wizardInfo && settings && (
         <StartupWizard info={wizardInfo} settings={settings} onClose={closeWizard} />
       )}
+
+      {previewEntry && (
+        <EntryPreview entry={previewEntry} onClose={() => setPreviewEntry(null)} onPaste={paste} />
+      )}
     </main>
   )
+}
+
+function EntryPreview({ entry, onClose, onPaste }: { entry: ClipboardEntry; onClose: () => void; onPaste: (id: string) => void }) {
+  return (
+    <div className="preview-backdrop" onClick={onClose}>
+      <section className="preview-panel" onClick={(event) => event.stopPropagation()}>
+        <header>
+          <div>
+            <span className={`kind ${entry.kind}`}>{entry.kind}</span>
+            <h2>{entry.preview || 'Clipboard item'}</h2>
+          </div>
+          <div className="preview-actions">
+            <button onClick={() => onPaste(entry.id)}>Paste</button>
+            <button onClick={onClose}>Close</button>
+          </div>
+        </header>
+        <PreviewBody entry={entry} />
+      </section>
+    </div>
+  )
+}
+
+function PreviewBody({ entry }: { entry: ClipboardEntry }) {
+  if (entry.kind === 'image' && entry.imagePath) {
+    return <img className="large-image-preview" src={`file://${entry.imagePath}`} alt={entry.preview} />
+  }
+
+  if (entry.kind === 'files') {
+    return <pre className="large-text-preview">{(entry.filePaths ?? []).join('\n')}</pre>
+  }
+
+  if (entry.kind === 'html' && entry.html) {
+    return (
+      <div className="large-preview-grid">
+        <div className="large-html-preview" dangerouslySetInnerHTML={{ __html: entry.html }} />
+        <pre className="large-text-preview">{entry.plainText || entry.preview}</pre>
+      </div>
+    )
+  }
+
+  return <pre className="large-text-preview">{entry.plainText || entry.preview}</pre>
 }

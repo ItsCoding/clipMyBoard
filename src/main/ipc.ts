@@ -4,7 +4,6 @@ import { getStartupWizardInfo } from './services/capabilities'
 import type { ClipboardMonitor } from './services/clipboard'
 import type { DrawerWindowService } from './services/drawerWindow'
 import { pasteIntoFocusedApp } from './services/paste'
-import { getPlatformWarnings } from './services/platform'
 import type { StorageService } from './services/storage'
 
 interface IpcServices {
@@ -49,7 +48,7 @@ export function registerIpcHandlers({ storage, monitor, drawer, updateShortcut }
     return settings
   })
 
-  ipcMain.handle('platform:warnings', () => getPlatformWarnings())
   ipcMain.handle('startup:wizardInfo', () => getStartupWizardInfo())
+  ipcMain.handle('drawer:setExpanded', (_event, expanded: boolean) => drawer.setExpanded(expanded))
   ipcMain.handle('drawer:hide', () => drawer.hide())
 }

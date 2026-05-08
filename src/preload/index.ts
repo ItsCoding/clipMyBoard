@@ -9,8 +9,8 @@ const api: ClipboardApi = {
   clearHistory: () => ipcRenderer.invoke('entries:clear'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (settings: Partial<AppSettings>) => ipcRenderer.invoke('settings:update', settings),
-  getPlatformWarnings: () => ipcRenderer.invoke('platform:warnings'),
   getStartupWizardInfo: () => ipcRenderer.invoke('startup:wizardInfo'),
+  setDrawerExpanded: (expanded: boolean) => ipcRenderer.invoke('drawer:setExpanded', expanded),
   hideDrawer: () => ipcRenderer.invoke('drawer:hide'),
   onEntriesChanged: (callback: () => void) => {
     const listener = () => callback()
