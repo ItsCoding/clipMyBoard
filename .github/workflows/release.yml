@@ -74,7 +74,7 @@ jobs:
             artifact: clipmyboard-macos-release
             files: |
               release/*.dmg
-              release/latest-mac.yml
+              release/latest-mac*.yml
 
     runs-on: ${{ matrix.os }}
 

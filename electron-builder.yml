@@ -6,6 +6,7 @@ files:
   - dist/**
   - package.json
 mac:
+  identity: null
   target: dmg
   category: public.app-category.productivity
 win:
