@@ -1,0 +1,18 @@
+appId: dev.clipmyboard.app
+productName: ClipMyBoard
+directories:
+  output: release
+files:
+  - dist/**
+  - package.json
+mac:
+  target: dmg
+  category: public.app-category.productivity
+win:
+  target: nsis
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+npmRebuild: true
