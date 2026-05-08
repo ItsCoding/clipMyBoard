@@ -12,5 +12,14 @@ export const defaultSettings: AppSettings = {
     '-----BEGIN [A-Z ]+PRIVATE KEY-----',
     '(?i)(api[_-]?key|secret|token|password)\\s*[:=]\\s*[\\w.-]{12,}'
   ],
-  theme: 'system'
+  theme: 'system',
+  accentColor: '#4c8cff',
+  opacity: 1,
+  animationsEnabled: true,
+  alignment: 'top',
+  monitorTarget: 'cursor',
+  compactWidthPercent: 70,
+  compactHeightPercent: 32,
+  expandedWidthPercent: 60,
+  expandedHeightPercent: 40
 }

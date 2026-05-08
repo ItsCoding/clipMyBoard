@@ -20,12 +20,24 @@ const labels: Record<ClipboardEntry['kind'], string> = {
 
 export function EntryCard({ entry, active, index, onPaste, onPreview, onTogglePin, onDelete }: EntryCardProps) {
   return (
-    <article className={`entry-card ${active ? 'active' : ''}`} onClick={() => onPaste(entry.id)}>
+    <article
+      className={`entry-card ${active ? 'active' : ''}`}
+      data-entry-index={index}
+      onClick={() => onPaste(entry.id)}
+    >
       <header>
         <span className={`kind ${entry.kind}`}>{labels[entry.kind]}</span>
         <div className="card-actions">
-          <button title="Preview" onClick={(event) => { event.stopPropagation(); onPreview(entry) }}>⛶</button>
-          <button title="Pin" onClick={(event) => { event.stopPropagation(); onTogglePin(entry.id) }}>{entry.isPinned ? '●' : '○'}</button>
+          <button
+            title="Expand preview"
+            aria-label="Expand preview"
+            onClick={(event) => { event.stopPropagation(); onPreview(entry) }}
+          >⛶</button>
+          <button
+            title={entry.isPinned ? 'Unpin' : 'Pin'}
+            aria-label={entry.isPinned ? 'Unpin' : 'Pin'}
+            onClick={(event) => { event.stopPropagation(); onTogglePin(entry.id) }}
+          >{entry.isPinned ? '●' : '○'}</button>
         </div>
       </header>
 

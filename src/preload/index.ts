@@ -20,6 +20,13 @@ const api: ClipboardApi = {
       ipcRenderer.removeListener('entries:changed', listener)
       ipcRenderer.removeListener('drawer:shown', listener)
     }
+  },
+  onSettingsChanged: (callback: (settings: AppSettings) => void) => {
+    const listener = (_event: unknown, settings: AppSettings) => callback(settings)
+    ipcRenderer.on('settings:changed', listener)
+    return () => {
+      ipcRenderer.removeListener('settings:changed', listener)
+    }
   }
 }
 

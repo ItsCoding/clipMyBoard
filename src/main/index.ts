@@ -34,15 +34,16 @@ async function bootstrap(): Promise<void> {
   const monitor = new ClipboardMonitor(storage, paths.assetsDir, () => drawer.broadcastEntriesChanged())
   hotkeys = new HotkeyService()
 
-  const updateShortcut = (settings: AppSettings): void => {
+  const applySettings = (settings: AppSettings): void => {
+    applyTheme(settings.theme)
     hotkeys?.register(settings.shortcut, () => drawer.show())
+    drawer.applySettings(settings)
   }
 
-  registerIpcHandlers({ storage, monitor, drawer, updateShortcut })
+  registerIpcHandlers({ storage, monitor, drawer, applySettings })
 
   const settings = storage.getSettings()
-  applyTheme(settings.theme)
-  updateShortcut(settings)
+  applySettings(settings)
   drawer.create()
   monitor.start()
 

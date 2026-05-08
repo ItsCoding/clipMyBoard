@@ -10,10 +10,10 @@ interface IpcServices {
   storage: StorageService
   monitor: ClipboardMonitor
   drawer: DrawerWindowService
-  updateShortcut: (settings: AppSettings) => void
+  applySettings: (settings: AppSettings) => void
 }
 
-export function registerIpcHandlers({ storage, monitor, drawer, updateShortcut }: IpcServices): void {
+export function registerIpcHandlers({ storage, monitor, drawer, applySettings }: IpcServices): void {
   ipcMain.handle('entries:list', (_event, query?: string) => storage.listEntries(query))
 
   ipcMain.handle('entries:paste', async (_event, id: string) => {
@@ -44,7 +44,7 @@ export function registerIpcHandlers({ storage, monitor, drawer, updateShortcut }
 
   ipcMain.handle('settings:update', (_event, patch: Partial<AppSettings>) => {
     const settings = storage.updateSettings(patch)
-    updateShortcut(settings)
+    applySettings(settings)
     return settings
   })
 

@@ -27,7 +27,18 @@ export interface AppSettings {
   ignoredApps: string[]
   secretPatterns: string[]
   theme: 'system' | 'light' | 'dark'
+  accentColor: string
+  opacity: number
+  animationsEnabled: boolean
+  alignment: DrawerAlignment
+  monitorTarget: 'cursor' | 'primary'
+  compactWidthPercent: number
+  compactHeightPercent: number
+  expandedWidthPercent: number
+  expandedHeightPercent: number
 }
+
+export type DrawerAlignment = 'top' | 'bottom' | 'left' | 'right' | 'center' | 'cursor'
 
 export interface CaptureCandidate {
   kind: ClipboardEntryKind
@@ -72,6 +83,7 @@ export interface ClipboardApi {
   setDrawerExpanded: (expanded: boolean) => Promise<void>
   hideDrawer: () => Promise<void>
   onEntriesChanged: (callback: () => void) => () => void
+  onSettingsChanged: (callback: (settings: AppSettings) => void) => () => void
 }
 
 declare global {

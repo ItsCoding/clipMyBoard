@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppSettings, ClipboardEntry, StartupWizardInfo } from '../../shared/types'
 import { EntryCard } from './EntryCard'
 import { SearchBar } from './SearchBar'
+import { SettingsPanel } from './SettingsPanel'
 import { StartupWizard } from './StartupWizard'
 
 const filters = ['History', 'Pinned', 'Links', 'Images', 'Files'] as const
@@ -17,6 +18,8 @@ export function Drawer() {
   const [showWizard, setShowWizard] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [previewEntry, setPreviewEntry] = useState<ClipboardEntry | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const entriesRef = useRef<HTMLDivElement | null>(null)
 
   const loadEntries = useCallback(async () => {
     const nextEntries = await window.clipmyboard.listEntries(query)
@@ -29,6 +32,20 @@ export function Drawer() {
   }, [loadEntries])
 
   useEffect(() => window.clipmyboard.onEntriesChanged(() => void loadEntries()), [loadEntries])
+
+  useEffect(() => window.clipmyboard.onSettingsChanged(setSettings), [])
+
+  // Apply visual settings as CSS custom properties.
+  useEffect(() => {
+    if (!settings) return
+    const root = document.documentElement
+    root.style.setProperty('--accent', settings.accentColor)
+    root.style.setProperty('--accent-soft', hexWithAlpha(settings.accentColor, 0.18))
+    root.style.setProperty('--accent-shadow', hexWithAlpha(settings.accentColor, 0.24))
+    root.style.setProperty('--surface-opacity', String(settings.opacity))
+    root.dataset.theme = settings.theme
+    root.dataset.animations = settings.animationsEnabled ? 'on' : 'off'
+  }, [settings])
 
   useEffect(() => {
     async function loadStartupState() {
@@ -76,6 +93,29 @@ export function Drawer() {
     await window.clipmyboard.setDrawerExpanded(next)
   }, [isExpanded])
 
+  // Translate vertical wheel into horizontal scroll while in compact mode.
+  useEffect(() => {
+    const node = entriesRef.current
+    if (!node || isExpanded) return
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0) return
+      // Let shift+wheel behave normally.
+      if (event.shiftKey) return
+      event.preventDefault()
+      node.scrollLeft += event.deltaY
+    }
+    node.addEventListener('wheel', onWheel, { passive: false })
+    return () => node.removeEventListener('wheel', onWheel)
+  }, [isExpanded])
+
+  // Keep the active card visible when navigating with the keyboard.
+  useEffect(() => {
+    const node = entriesRef.current
+    if (!node) return
+    const card = node.querySelector<HTMLElement>(`[data-entry-index="${activeIndex}"]`)
+    card?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [activeIndex, filteredEntries.length])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -120,11 +160,24 @@ export function Drawer() {
       <section className="content">
         <div className="topbar">
           <SearchBar value={query} onChange={setQuery} />
-          <div className="hint">Click/Enter paste · Esc close · Shift+Ctrl+V open</div>
-          <button className="toolbar-button" onClick={toggleExpanded}>{isExpanded ? 'Compact' : 'Extend'}</button>
+          <div className="hint">Click/Enter paste · Esc close · Shift+Ctrl+V open · Scroll for older items</div>
+          <button
+            className="icon-button toolbar-icon"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Open settings"
+          >⚙</button>
+          <button
+            className="toolbar-button"
+            onClick={toggleExpanded}
+            title={isExpanded ? 'Shrink drawer' : 'Expand drawer to see more'}
+          >
+            <span className="icon" aria-hidden>{isExpanded ? '⤡' : '⤢'}</span>
+            <span>{isExpanded ? 'Compact' : 'Extend'}</span>
+          </button>
         </div>
 
-        <div className="entries">
+        <div className="entries" ref={entriesRef}>
           {filteredEntries.map((entry, index) => (
             <EntryCard
               key={entry.id}
@@ -143,6 +196,14 @@ export function Drawer() {
 
       {showWizard && wizardInfo && settings && (
         <StartupWizard info={wizardInfo} settings={settings} onClose={closeWizard} />
+      )}
+
+      {showSettings && settings && (
+        <SettingsPanel
+          settings={settings}
+          onChange={setSettings}
+          onClose={() => setShowSettings(false)}
+        />
       )}
 
       {previewEntry && (
@@ -191,4 +252,14 @@ function PreviewBody({ entry }: { entry: ClipboardEntry }) {
   }
 
   return <pre className="large-text-preview">{entry.plainText || entry.preview}</pre>
+}
+
+function hexWithAlpha(hex: string, alpha: number): string {
+  const value = hex.replace('#', '')
+  const expanded = value.length === 3 ? value.split('').map((c) => c + c).join('') : value
+  const r = parseInt(expanded.slice(0, 2), 16)
+  const g = parseInt(expanded.slice(2, 4), 16)
+  const b = parseInt(expanded.slice(4, 6), 16)
+  if ([r, g, b].some((v) => Number.isNaN(v))) return hex
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }

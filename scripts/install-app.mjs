@@ -52,7 +52,9 @@ function installLinux() {
   const autostartPath = join(autostartDir, `${appId}.desktop`)
   const symlinkPath = join(binDir, 'clipmyboard')
 
+  killRunningInstances()
   cleanupLinuxLegacyInstall()
+  remove(installDir)
   replaceDir(sourceDir, installDir)
   const exePath = dryRun ? join(installDir, 'clipmyboard') : findLinuxExecutable(installDir)
   chmod(exePath, 0o755)
@@ -96,7 +98,9 @@ function installMac() {
   const plistPath = join(agentsDir, `${appId}.plist`)
 
   mkdir(applicationsDir)
+  killRunningInstances()
   cleanupMacLegacyInstall()
+  remove(targetApp)
   if (!dryRun) replaceDir(sourceApp, targetApp)
   else console.log(`copy ${sourceApp} -> ${targetApp}`)
 
@@ -141,7 +145,9 @@ function installWindows() {
   const startMenuDir = join(appData, 'Microsoft', 'Windows', 'Start Menu', 'Programs')
   const startMenuShortcut = join(startMenuDir, `${appName}.lnk`)
 
+  killRunningInstances()
   cleanupWindowsLegacyInstall(localAppData, appData)
+  remove(installDir)
   replaceDir(sourceDir, installDir)
   if (!dryRun) assertExists(exePath, 'Installed Windows executable was not found.')
   createWindowsShortcut(exePath, startupShortcut)
@@ -186,6 +192,21 @@ function findLinuxExecutable(installDir) {
   throw new Error(`Could not find Linux executable in ${installDir}`)
 }
 
+function killRunningInstances() {
+  const targets = [appName, appName.toLowerCase(), 'clipmyboard', oldAppName, oldAppName.toLowerCase(), 'clipmyass']
+  const unique = Array.from(new Set(targets))
+
+  if (process.platform === 'linux' || process.platform === 'darwin') {
+    for (const name of unique) {
+      run('pkill', ['-f', name], { allowFailure: true, quiet: true })
+    }
+  } else if (process.platform === 'win32') {
+    for (const name of unique) {
+      run('taskkill', ['/IM', `${name}.exe`, '/F'], { allowFailure: true, quiet: true })
+    }
+  }
+}
+
 function cleanupLinuxLegacyInstall() {
   remove(join(homedir(), '.local', 'opt', oldAppName))
   remove(join(homedir(), '.local', 'bin', 'clipmyass'))
@@ -210,7 +231,7 @@ function run(command, commandArgs, options = {}) {
 
   const result = spawnSync(command, commandArgs, {
     cwd: projectRoot,
-    stdio: 'inherit',
+    stdio: options.quiet ? 'ignore' : 'inherit',
     shell: false
   })
 
